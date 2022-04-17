@@ -1,4 +1,4 @@
-#include <optional>
+#include <variant>
 #include <string>
 #include <stdexcept>
 
@@ -14,39 +14,25 @@ namespace thesoup {
      * \brief Sub namespace with all numeric classes and functions.
      * */
     namespace types {
-
-        /**
-         * \enum Operation type
-         *
-         * The `OperationType` enum is the type used by the `Result` struct to indicate what type of result is it
-         * returning. Possible values are `ERR` and `OK`.
-         * */
-        enum class OperationType {
-            OK, ERR
-        };
-
         /**
          * \class Result
          * \tparam T The success type.
          * \tparam E The error type.
          *
          * \brief A class akin to Rust's `Result<T, E>`. Helps us avoid having to throw exceptions.
-         *
-         * The `Result<T, E>` type is used to return the results of operations in the library. The usage of a
-         * `Result` type to return computations is borrowed from Rust, and is also a neat way to avoid the
-         * overhead of exceptions. Sibce the enumeration type of c++, as of c++17 is not so powerful as rust,
-         * this is a relatively simple implementation, that avoids unnecessary complexity while getting the job
-         * done.
+         * The `Result<T, E>` type is used to return the results of operations in the library.
          *
          * Usage:
          * ------
-         * If you want to return a successful result, set the `type` field to `OperationType::OK`, set the return value
-         * (std::optional<T>). Note, in case of just a void return type, you can leave the val to nullopt (default value)
-         *
-         * If you want to indicate error, then set the `type` field to `OperationType::ERR`, set the error to some value
-         * of type `std::optional<E>`, `E` being the error typr you use. It can be some subclass of `std::exception` or
-         * your own type. This library will use the enum `ErrorCode`. You can also set the `message` to convey more useful
-         * information.
+         * Result res {Result<int, int>::success(1)};
+         * Result res2{Result<int,int>::failure(2)};
+         * std::cout << res.unwrap() << "\n";
+         * std::cout << res2.error() << "\n";
+         * if (res) {
+         *     std::cout << "Yes\n";
+         * } else {
+         *     std::cout << "No\n";
+         * }
          *
          * \var type Represents the result type (Either success or err).
          *
@@ -56,69 +42,81 @@ namespace thesoup {
          *
          * \var message Optional error message
          * */
-        template <typename T, typename E> struct Result {
-            OperationType type {OperationType::ERR};
-            std::optional<T> val {std::nullopt};
-            std::optional<E> error {std::nullopt};
-            std::optional<std::string> message {std::nullopt};
+        template <typename T, typename E> class Result {
+        private:
+            struct _Error {
+                E err;
+                _Error(const E& err): err {err} {}
+            };
+            const std::variant<T, _Error> store;
+            const bool is_error;
+
+            Result(const T& val): store {val}, is_error {false} {}
+            Result(const E& err, bool is_error): store {_Error(err)}, is_error {is_error} {}
+
+        public:
+
+            operator bool() const {
+                return !is_error;
+            }
+
+            /**
+             * \brief Return the success object
+             *
+             * This function returns the success object wrapped inside of the result object. Calling this function on a
+             * Result object of Failure type will throw a `std::runtime_error`
+             *
+             * \return: Length of the vector (std::size_t)
+             * */
+            const T& unwrap() {
+                if (is_error) {
+                    throw std::runtime_error("Result attempted to be unwrapped on error.");
+                } else {
+                    return std::get<T>(store);
+                }
+            }
+
+            /**
+             * \brief Return the error object
+             *
+             * This function returns the error object wrapped inside of the result object. Calling this function on a
+             * Result object of OK type will throw a `std::runtime_error`
+             *
+             * \return: Length of the vector (std::size_t)
+             * */
+            const E& error() {
+                if (!is_error) {
+                    throw std::runtime_error("Error access attempted in success.");
+                } else {
+                    return std::get<_Error>(store).err;
+                }
+            }
+
+            /**
+            * \brief Return an `Result` object of success type
+            *
+            * This function returns a result object of success type. Access the value by calling `unwrap` on it.
+            *
+            * \return The Result object
+            */
+            static Result<T,E> success(const T& val) {
+                return Result(val);
+            }
+
+            /**
+             * \brief Return an `Result` object of failure type.
+             *
+             * This function returns a result object of failure type. Access the error by calling the `err` method on it;
+             *
+             * \tparam T The type of value (not error).
+             * \tparam E The type of error.
+             *
+             * \return The Result object
+         */
+            static Result<T,E> failure(const E& err) {
+                return Result(err, true);
+            }
         };
-
-        /**
-         * \brief Return an `Result` object with type set to `Err`
-         *
-         * This function returns a result object with type set to `Err`. The error message is null-opt.
-         *
-         * \tparam T The type of value (not error).
-         * \tparam E The type of error.
-         *
-         * \return The Result object
-         */
-        template <typename T, typename E> Result<T, E> error(const E& err) {
-            return Result<T, E> {
-                OperationType::ERR,
-                std::nullopt,
-                err,
-                std::nullopt
-            };
-        }
-
-        /**
-         * \brief Return an `Result` object with type set to `Err`
-         *
-         * This function returns a result object with type set to `Err`. The error message is set to the provided value.
-         *
-         * \tparam T The type of value (not error).
-         * \tparam E The type of error.
-         *
-         * \return The Result object
-         */
-        template <typename T, typename E> Result<T, E> error(const E& err, const std::string& msg) {
-            return Result<T, E> {
-                OperationType::ERR,
-                std::nullopt,
-                err,
-                msg
-            };
-        }
-
-        /**
-         * \brief Return an `Result` object with type set to `Ok`
-         *
-         * This function returns a result object with type set to `Ok`.
-         *
-         * \tparam T The type of value (not error).
-         * \tparam E The type of error.
-         *
-         * \return The Result object
-         */
-        template <typename T, typename E> Result<T, E> ok(const T& val) {
-            return Result<T, E> {
-                OperationType::OK,
-                val,
-                std::nullopt,
-                std::nullopt
-            };
-        }
 
 
         /**

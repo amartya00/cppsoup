@@ -1,0 +1,1 @@
+install_subdir('thesoup', install_dir: 'include')

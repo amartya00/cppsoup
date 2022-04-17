@@ -3,12 +3,9 @@
 #include <vector>
 #include <thesoup/types/types.hpp>
 #include <catch2/catch.hpp>
-#include <exception>
+#include <stdexcept>
 
 using thesoup::types::Result;
-using thesoup::types::error;
-using thesoup::types::ok;
-using thesoup::types::OperationType;
 using thesoup::types::Slice;
 using thesoup::types::IsForwardIteratorOfType;
 
@@ -16,63 +13,30 @@ SCENARIO("Results test") {
 
     GIVEN("I have an OK result") {
 
-        auto res {ok<int, int>(10)};
+        auto res {Result<int, int>::success(10)};
 
         WHEN("I attempt to access it's fields") {
 
-            auto type {res.type};
-            auto val {res.val};
-            auto err {res.error};
-            auto msg {res.message};
-
             THEN("Everything should be as expected") {
 
-                REQUIRE(OperationType::OK == type);
-                REQUIRE(10 == *res.val);
-                REQUIRE(std::nullopt == res.error);
-                REQUIRE(std::nullopt == res.message);
+                REQUIRE(res);
+                REQUIRE(10 == res.unwrap());
+                REQUIRE_THROWS_AS(res.error(), std::runtime_error);
             }
         }
     }
 
     GIVEN("I have an error result") {
 
-        auto res {error<int, int>(2)};
+        auto res {Result<int, int>::failure(2)};
 
         WHEN("I attempt to access it's fields") {
 
-            auto type {res.type};
-            auto val {res.val};
-            auto err {res.error};
-            auto msg {res.message};
-
             THEN("Everything should be as expected") {
 
-                REQUIRE(OperationType::ERR == type);
-                REQUIRE(std::nullopt == res.val);
-                REQUIRE(2 == *res.error);
-                REQUIRE(std::nullopt == res.message);
-            }
-        }
-    }
-
-    GIVEN("I have an error result with a message") {
-
-        auto res {error<int, int>(2, "Error message")};
-
-        WHEN("I attempt to access it's fields") {
-
-            auto type {res.type};
-            auto val {res.val};
-            auto err {res.error};
-            auto msg {res.message};
-
-            THEN("Everything should be as expected") {
-
-                REQUIRE(OperationType::ERR == type);
-                REQUIRE(std::nullopt == res.val);
-                REQUIRE(2 == *res.error);
-                REQUIRE(std::string("Error message") == *res.message);
+                REQUIRE(!res);
+                REQUIRE(2 == res.error());
+                REQUIRE_THROWS_AS(res.unwrap(), std::runtime_error);
             }
         }
     }

@@ -12,7 +12,17 @@ add_global_arguments('--std=c++17', '-Werror', language : 'cpp')
 #Dependencies
 catch = dependency('catch2')
 
+# Sources
 inc = include_directories('headers')
-
 subdir('headers')
 subdir('tst')
+
+# Set up pkgconfig
+pkg = import('pkgconfig')
+pkg.generate(
+    subdirs : 'headers/thesoup',
+    version : '0.0.1',
+    name : 'thesoup',
+    filebase : 'thesoup',
+    description : 'OWL compliant triple store.'
+)

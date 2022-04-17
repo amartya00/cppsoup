@@ -1,4 +1,6 @@
 build/
+_build/
 .idea/
 .kdev4/
 *.kdev4
+.DS_Store
