@@ -47,12 +47,14 @@ namespace thesoup {
             struct _Error {
                 E err;
                 _Error(const E& err): err {err} {}
+                _Error(E&& err): err {std::move(err)} {}
             };
             const std::variant<T, _Error> store;
             const bool is_error;
 
-            Result(const T& val): store {val}, is_error {false} {}
-            Result(const E& err, bool is_error): store {_Error(err)}, is_error {is_error} {}
+            Result(const T& val) noexcept: store {val}, is_error {false} {}
+            Result(T&& val) noexcept: store {std::move(val)}, is_error {false} {}
+            Result(const E& err, bool is_error) noexcept: store {_Error(err)}, is_error {is_error} {}
 
         public:
 
@@ -99,8 +101,8 @@ namespace thesoup {
             *
             * \return The Result object
             */
-            static Result<T,E> success(const T& val) {
-                return Result(val);
+            static Result<T,E> success(T&& val) {
+                return Result(std::forward<T>(val));
             }
 
             /**
@@ -113,11 +115,10 @@ namespace thesoup {
              *
              * \return The Result object
          */
-            static Result<T,E> failure(const E& err) {
-                return Result(err, true);
+            static Result<T,E> failure(E&& err) {
+                return Result(std::forward<E>(err), true);
             }
         };
-
 
         /**
          * \class Slice

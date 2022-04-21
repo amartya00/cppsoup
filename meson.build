@@ -21,8 +21,8 @@ subdir('tst')
 pkg = import('pkgconfig')
 pkg.generate(
     subdirs : 'headers/thesoup',
-    version : '0.0.1',
+    version : '0.0.2',
     name : 'thesoup',
     filebase : 'thesoup',
-    description : 'OWL compliant triple store.'
+    description : 'A variety of c++ utilities.'
 )
