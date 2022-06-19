@@ -2,7 +2,7 @@
 
 #include <vector>
 #include <thesoup/types/types.hpp>
-#include <catch2/catch.hpp>
+#include <catch2/catch_all.hpp>
 #include <stdexcept>
 
 using thesoup::types::Result;
